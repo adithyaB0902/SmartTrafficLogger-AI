@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Add Violation{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">
+        <small>New Entry</small>
+        Add Violation
+    </div>
+    <a href="{{ url_for('view_violations') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="card" style="max-width:800px;">
+    <form method="POST">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Vehicle Number *</label>
+                <input name="vehicle_number" class="form-control" placeholder="e.g. MH12AB1234" required style="text-transform:uppercase;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Violation Type *</label>
+                <select name="violation_type" class="form-control" required>
+                    <option value="" disabled selected>Select type…</option>
+                    {% for vtype in violation_types %}
+                    <option value="{{ vtype }}">{{ vtype }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location *</label>
+                <input name="location" class="form-control" placeholder="e.g. MG Road Junction" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date *</label>
+                <input name="date" type="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fine Amount (₹) *</label>
+                <input name="fine_amount" type="number" min="1" step="0.01" class="form-control" placeholder="e.g. 500" required>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">Notes (optional)</label>
+                <textarea name="notes" class="form-control" placeholder="Additional details, officer notes…"></textarea>
+            </div>
+        </div>
+        <div style="margin-top:1.5rem; display:flex; gap:10px;">
+            <button type="submit" class="btn btn-primary">Submit Violation</button>
+            <a href="{{ url_for('view_violations') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+// Auto uppercase vehicle number
+document.querySelector('[name="vehicle_number"]').addEventListener('input', function() {
+    const pos = this.selectionStart;
+    this.value = this.value.toUpperCase();
+    this.setSelectionRange(pos, pos);
+});
+// Default date to today
+document.querySelector('[name="date"]').valueAsDate = new Date();
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Violations{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">
+        <small>Records</small>
+        Violations
+        <span style="font-family:var(--font-mono); font-size:0.9rem; color:var(--text3); font-weight:400; margin-left:10px;">{{ violations.total }} total</span>
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('export_csv') }}" class="btn btn-ghost">↓ Export CSV</a>
+        <a href="{{ url_for('add_violation') }}" class="btn btn-primary">+ Add Violation</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="filters-bar">
+    <div class="form-group" style="flex:2; min-width:200px;">
+        <label class="form-label">Search Vehicle</label>
+        <input name="vehicle" class="form-control" placeholder="e.g. MH12AB…" value="{{ search }}">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-control">
+            <option value="">All</option>
+            <option value="Unpaid" {% if status_filter == 'Unpaid' %}selected{% endif %}>Unpaid</option>
+            <option value="Paid" {% if status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="type" class="form-control">
+            <option value="">All Types</option>
+            {% for vtype in violation_types %}
+            <option value="{{ vtype }}" {% if type_filter == vtype %}selected{% endif %}>{{ vtype }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <button type="submit" class="btn btn-primary" style="margin-top:1.4rem;">Filter</button>
+        <a href="{{ url_for('view_violations') }}" class="btn btn-ghost" style="margin-top:1.4rem;">Clear</a>
+    </div>
+</form>
+
+{% if violations.items %}
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Vehicle</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Date</th>
+                    <th>Fine</th>
+                    <th>Status</th>
+                    <th>QR</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in violations.items %}
+                <tr>
+                    <td style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text3);">{{ v.id }}</td>
+                    <td><span class="vehicle-num">{{ v.vehicle_number }}</span></td>
+                    <td style="color:var(--text2);">{{ v.violation_type }}</td>
+                    <td style="font-size:0.82rem; color:var(--text2); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ v.location }}</td>
+                    <td style="font-family:var(--font-mono); font-size:0.75rem; white-space:nowrap; color:var(--text2);">{{ v.date_str }}</td>
+                    <td>
+                        <span class="amount {{ 'unpaid' if v.status == 'Unpaid' else 'paid' }}">
+                            ₹{{ "{:,.0f}".format(v.fine_amount) }}
+                        </span>
+                    </td>
+                    <td><span class="badge badge-{{ v.status.lower() }}">{{ v.status }}</span></td>
+                    <td>
+                        {% if v.qr_code %}
+                        <img src="/static/qr_codes/{{ v.qr_code }}" width="48" height="48"
+                             style="border-radius:4px; background:white; padding:3px; cursor:pointer;"
+                             onclick="showQR('/static/qr_codes/{{ v.qr_code }}', '{{ v.vehicle_number }}')"
+                             title="Click to enlarge">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <a href="{{ url_for('edit_violation', id=v.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+                            {% if v.status == 'Unpaid' %}
+                            <form action="{{ url_for('update_status', id=v.id) }}" method="POST" class="inline-form">
+                                <button type="submit" class="btn btn-success btn-sm">✓ Paid</button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ url_for('public_status', violation_id=v.id) }}" target="_blank" class="btn btn-ghost btn-sm" title="Public view">↗</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if violations.pages > 1 %}
+<div class="pagination">
+    {% if violations.has_prev %}
+    <a href="{{ url_for('view_violations', page=violations.prev_num, vehicle=search, status=status_filter, type=type_filter) }}" class="page-btn">← Prev</a>
+    {% endif %}
+    {% for p in violations.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <a href="{{ url_for('view_violations', page=p, vehicle=search, status=status_filter, type=type_filter) }}"
+           class="page-btn {% if p == violations.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+        <span class="page-btn" style="border:none; color:var(--text3);">…</span>
+        {% endif %}
+    {% endfor %}
+    {% if violations.has_next %}
+    <a href="{{ url_for('view_violations', page=violations.next_num, vehicle=search, status=status_filter, type=type_filter) }}" class="page-btn">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <h3>No violations found</h3>
+    <p>Try adjusting your filters or <a href="{{ url_for('add_violation') }}" style="color:var(--accent);">add a new violation</a>.</p>
+</div>
+{% endif %}
+
+<!-- QR Modal -->
+<div id="qrModal" onclick="hideQR()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+    <div onclick="event.stopPropagation()" style="background:var(--surface); border:1px solid var(--border2); border-radius:10px; padding:2rem; text-align:center; max-width:300px; width:90%;">
+        <div id="qrVehicle" style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text3); margin-bottom:1rem; letter-spacing:0.1em;"></div>
+        <img id="qrImg" src="" style="width:200px; height:200px; background:white; padding:8px; border-radius:6px;">
+        <div style="margin-top:1rem;">
+            <button onclick="hideQR()" class="btn btn-ghost btn-sm">Close</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showQR(src, vehicle) {
+    document.getElementById('qrImg').src = src;
+    document.getElementById('qrVehicle').textContent = vehicle;
+    const m = document.getElementById('qrModal');
+    m.style.display = 'flex';
+}
+function hideQR() {
+    document.getElementById('qrModal').style.display = 'none';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideQR(); });
+</script>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">
+        <small>Overview</small>
+        Dashboard
+    </div>
+    <div class="page-actions">
+        <a href="{{ url_for('export_csv') }}" class="btn btn-ghost">
+            ↓ Export CSV
+        </a>
+        <a href="{{ url_for('add_violation') }}" class="btn btn-primary">
+            + Add Violation
+        </a>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stat-grid">
+    <div class="stat-card orange">
+        <div class="stat-num">{{ total }}</div>
+        <div class="stat-label">Total Violations</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-num">{{ unpaid }}</div>
+        <div class="stat-label">Unpaid</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-num">{{ paid }}</div>
+        <div class="stat-label">Paid</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-num">₹{{ "{:,.0f}".format(collected) }}</div>
+        <div class="stat-label">Fines Collected</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-num">₹{{ "{:,.0f}".format(pending_amount) }}</div>
+        <div class="stat-label">Pending Amount</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-num">₹{{ "{:,.0f}".format(total_fines) }}</div>
+        <div class="stat-label">Total Fines Issued</div>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+
+    <!-- Top Violation Types -->
+    <div class="card">
+        <div class="card-label">Top Violation Types</div>
+        {% if top_types %}
+        <div style="margin-top:1rem; display:flex; flex-direction:column; gap:10px;">
+            {% set max_count = top_types[0].count %}
+            {% for t in top_types %}
+            <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.82rem;">
+                    <span style="color:var(--text2);">{{ t.violation_type }}</span>
+                    <span style="font-family:var(--font-mono); font-size:0.72rem; color:var(--text3);">{{ t.count }}</span>
+                </div>
+                <div style="height:4px; background:var(--surface3); border-radius:2px; overflow:hidden;">
+                    <div style="height:100%; width:{{ (t.count / max_count * 100)|int }}%; background:var(--accent); border-radius:2px; transition:width 0.8s ease;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--text3); font-size:0.85rem; margin-top:1rem;">No data yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Violations -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div class="card-label">Recent Violations</div>
+            <a href="{{ url_for('view_violations') }}" style="font-family:var(--font-mono); font-size:0.65rem; color:var(--accent); text-decoration:none; letter-spacing:0.08em;">VIEW ALL →</a>
+        </div>
+        {% if recent %}
+        <div style="display:flex; flex-direction:column; gap:0;">
+            {% for v in recent %}
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); {% if loop.last %}border-bottom:none;{% endif %}">
+                <div>
+                    <span class="vehicle-num">{{ v.vehicle_number }}</span>
+                    <div style="font-size:0.75rem; color:var(--text3); margin-top:3px;">{{ v.violation_type }}</div>
+                </div>
+                <div style="text-align:right;">
+                    <span class="badge badge-{{ v.status.lower() }}">{{ v.status }}</span>
+                    <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text3); margin-top:3px;">₹{{ "{:,.0f}".format(v.fine_amount) }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:var(--text3); font-size:0.85rem;">No violations recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Monthly Chart -->
+<div class="card" style="margin-bottom:2rem;">
+    <div class="card-label" style="margin-bottom:1.25rem;">Monthly Violations (Last 12 Months)</div>
+    <canvas id="monthlyChart" height="80"></canvas>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+fetch('/api/stats').then(r => r.json()).then(data => {
+    if (!data.length) return;
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.month),
+            datasets: [{
+                label: 'Violations',
+                data: data.map(d => d.count),
+                backgroundColor: 'rgba(245,166,35,0.7)',
+                borderColor: 'rgba(245,166,35,1)',
+                borderWidth: 1,
+                borderRadius: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1c2030',
+                    borderColor: '#343b56',
+                    borderWidth: 1,
+                    titleColor: '#e8ecf5',
+                    bodyColor: '#8a95b0',
+                    titleFont: { family: 'JetBrains Mono', size: 11 },
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(42,47,69,0.5)' },
+                    ticks: { color: '#555f7a', font: { family: 'JetBrains Mono', size: 10 } }
+                },
+                y: {
+                    grid: { color: 'rgba(42,47,69,0.5)' },
+                    ticks: { color: '#555f7a', font: { family: 'JetBrains Mono', size: 10 }, stepSize: 1 },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

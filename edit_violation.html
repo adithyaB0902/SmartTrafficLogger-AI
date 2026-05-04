@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Edit Violation{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <div class="page-title">
+        <small>Modify Record</small>
+        Edit Violation #{{ v.id }}
+    </div>
+    <a href="{{ url_for('view_violations') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="card" style="max-width:800px;">
+    <form method="POST">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">Vehicle Number *</label>
+                <input name="vehicle_number" class="form-control" value="{{ v.vehicle_number }}" required style="text-transform:uppercase;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Violation Type *</label>
+                <select name="violation_type" class="form-control" required>
+                    {% for vtype in violation_types %}
+                    <option value="{{ vtype }}" {% if vtype == v.violation_type %}selected{% endif %}>{{ vtype }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location *</label>
+                <input name="location" class="form-control" value="{{ v.location }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Date *</label>
+                <input name="date" type="date" class="form-control" value="{{ v.date.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fine Amount (₹) *</label>
+                <input name="fine_amount" type="number" min="1" step="0.01" class="form-control" value="{{ v.fine_amount }}" required>
+            </div>
+            <div class="form-group full">
+                <label class="form-label">Notes</label>
+                <textarea name="notes" class="form-control">{{ v.notes }}</textarea>
+            </div>
+        </div>
+        <div style="margin-top:1.5rem; display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ url_for('view_violations') }}" class="btn btn-ghost">Cancel</a>
+            <form action="{{ url_for('delete_violation', id=v.id) }}" method="POST" class="inline-form" onsubmit="return confirm('Delete this violation? This cannot be undone.')">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

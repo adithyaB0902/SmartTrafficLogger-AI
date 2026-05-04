@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Violation #{{ violation.id }} — TrafficLog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0d0f12; --surface: #141720; --surface2: #1c2030;
+            --border: #2a2f45; --border2: #343b56; --accent: #f5a623;
+            --red: #e84545; --green: #2ecc71; --text: #e8ecf5;
+            --text2: #8a95b0; --text3: #555f7a;
+        }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Barlow', sans-serif; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 2rem 1rem;
+            background-image: radial-gradient(ellipse at 50% 10%, rgba(245,166,35,0.04) 0%, transparent 50%);
+        }
+        .logo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.2rem; font-weight: 800;
+            color: var(--text2); letter-spacing: 0.05em;
+            margin-bottom: 2rem;
+        }
+        .logo span { color: var(--accent); }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; width: 100%; max-width: 480px;
+            overflow: hidden;
+            animation: fadeUp 0.3s ease;
+        }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h1 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.5rem; font-weight: 800;
+        }
+        .status-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem; font-weight: 500;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 5px 12px; border-radius: 4px;
+        }
+        .unpaid { background: rgba(232,69,69,0.15); color: var(--red); border: 1px solid rgba(232,69,69,0.3); }
+        .paid { background: rgba(46,204,113,0.12); color: var(--green); border: 1px solid rgba(46,204,113,0.25); }
+        .rows { padding: 0 1.5rem; }
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0; border-bottom: 1px solid var(--border);
+        }
+        .row:last-child { border-bottom: none; }
+        .row-key {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--text3);
+        }
+        .row-val { font-size: 0.9rem; font-weight: 500; text-align: right; }
+        .vehicle-num {
+            font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 500;
+            background: var(--surface2); border: 1px solid var(--border2);
+            padding: 4px 10px; border-radius: 4px; letter-spacing: 0.08em;
+        }
+        .fine-amt {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.8rem; font-weight: 800;
+            color: {% if violation.status == 'Unpaid' %}var(--red){% else %}var(--green){% endif %};
+        }
+        .qr-section {
+            text-align: center; padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            background: var(--surface2);
+        }
+        .qr-section p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem; color: var(--text3);
+            letter-spacing: 0.1em; text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
+        .qr-section img { width: 110px; height: 110px; background: white; padding: 6px; border-radius: 6px; }
+        .notice {
+            margin-top: 1.5rem; max-width: 480px; width: 100%;
+            background: rgba(232,69,69,0.06); border: 1px solid rgba(232,69,69,0.2);
+            border-radius: 8px; padding: 1rem 1.25rem;
+            font-size: 0.82rem; color: var(--text2); line-height: 1.6;
+        }
+        .notice strong { color: var(--red); }
+        .footer {
+            margin-top: 2rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.62rem; color: var(--text3);
+            letter-spacing: 0.1em; text-transform: uppercase;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">🚦 Traffic<span>Log</span></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h1>Violation #{{ violation.id }}</h1>
+            <span class="status-badge {{ violation.status.lower() }}">{{ violation.status }}</span>
+        </div>
+        <div class="rows">
+            <div class="row">
+                <span class="row-key">Vehicle</span>
+                <span class="vehicle-num">{{ violation.vehicle_number }}</span>
+            </div>
+            <div class="row">
+                <span class="row-key">Violation</span>
+                <span class="row-val">{{ violation.violation_type }}</span>
+            </div>
+            <div class="row">
+                <span class="row-key">Location</span>
+                <span class="row-val" style="max-width:60%;">{{ violation.location }}</span>
+            </div>
+            <div class="row">
+                <span class="row-key">Date</span>
+                <span class="row-val" style="font-family:'JetBrains Mono',monospace; font-size:0.82rem;">{{ violation.date_str }}</span>
+            </div>
+            <div class="row">
+                <span class="row-key">Fine Amount</span>
+                <span class="fine-amt">₹{{ "{:,.0f}".format(violation.fine_amount) }}</span>
+            </div>
+            {% if violation.notes %}
+            <div class="row">
+                <span class="row-key">Notes</span>
+                <span class="row-val" style="max-width:60%; font-size:0.82rem; color:var(--text2);">{{ violation.notes }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% if violation.qr_code %}
+        <div class="qr-section">
+            <p>Scan to view this record</p>
+            <img src="/static/qr_codes/{{ violation.qr_code }}" alt="QR Code">
+        </div>
+        {% endif %}
+    </div>
+
+    {% if violation.status == 'Unpaid' %}
+    <div class="notice">
+        <strong>⚠ Payment Required</strong><br>
+        Please pay the fine of ₹{{ "{:,.0f}".format(violation.fine_amount) }} at your nearest traffic authority office.
+        Failure to pay may result in additional penalties.
+    </div>
+    {% endif %}
+
+    <div class="footer">TrafficLog · Smart Violation Management · Authorized Portal</div>
+</body>
+</html>
